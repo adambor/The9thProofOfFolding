@@ -1,0 +1,14 @@
+{
+  "name": "compressiontest",
+  "version": "1.0.0",
+  "description": "Tests on closed single-use-seal list compression",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@skhaz/zstd": "^1.0.19"
+  }
+}
