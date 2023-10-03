@@ -4,45 +4,35 @@
 
 The main idea is to solve interactivity and scalability requirements for the original Prime proposal. To do this we try to think about the most compressed form of a single-use-seal, and then provide the list of closed seals in every block, this makes the block size O(n) instead of O(1), however if we keep the scaling factor (bytes needed to represent a seal) low, this still results in over 100x improvement in througput over current bitcoin blockchain. The reason we need to include a list of closed seals in every block to achieve non-interactivity of the protocol.
 
-
 ## Transaction
 
 Transaction in our proposal is similar to bitcoin transaction, with the UTXOs replaced with single-use-seals. Each transaction has one or more input single-use-seals (each of the inputs need to be satisfied with a valid scriptSig), commits to a data hash (e.g. RGB state transition) and optionally creates one or more new single-use-seals.
 
-~~~
+```
 -> input seal 0 --+-- data hash --+-- new seal 0 ->
 -> input seal 1 --+               +-- new seal 1 ->
                                   +-- new seal 2 ->
-~~~
-
+```
 
 ## Seal definition
 
 To keep the single-use-seal definition as compact as possible we decided to use a tuple of (u24, u24), where the first u24 represents the block number when the seal was open, and the second u24 represents the index of the seal in the opening block.
 
-
 ## Utilizing succinct proofs (STARKs)
 
 We defined single-use-seal only as a tuple of 2 numbers with the actual single-use-seal definition (scriptPubKey/publicKey) committed in block's txs merkle root. Therefore to spend a single-use-seal, you need to provide a merkle proof to the single-use-seal opening in the prior block (as defined by the (u24, u24) tuple). The transaction is also just committed in current block's merkle root, and only single-use-seals closed in that transaction are publicly exposed in the list of closed seals included in that block.
 
-We need a way to succinctly prove that each transaction is valid:
-	- has to spend a valid single-use-seal opened in a prior transaction
-	- has valid scriptSig/signature corresponding to the publicKey/lockingScript, defined in the transaction opening the seal
-	- is committed in the block's merkle root of all txns
-	- all single-use-seals closed in the transaction are included in the list of closed seals
-	- the sum of number of opened single-use-seals for each transaction adds up to the number of new seals opened in this block as stated in a block header
+We need a way to succinctly prove that each transaction is valid: - has to spend a valid single-use-seal opened in a prior transaction - has valid scriptSig/signature corresponding to the publicKey/lockingScript, defined in the transaction opening the seal - is committed in the block's merkle root of all txns - all single-use-seals closed in the transaction are included in the list of closed seals - the sum of number of opened single-use-seals for each transaction adds up to the number of new seals opened in this block as stated in a block header
 
 For these proofs we utilize STARKs, since they are post-quantum, require no trusted setup and are efficient for computations with loops. STARK proof size scales logarithmically with computation size (so number of txs).
 
-
 ## Ephemeral data
 
-When a block is mined we need to distribute proof data for parties transacting in that block (so they can later on construct a merkle proof when spending their seals). To achieve this without interactivity we just release the tx ids (transaction hashes) of all the transactions included in a block to the network, this data is ephemeral and is not retained by the network. A transacting party can collect the tx ids (hashes), see which of them corresponds to its transactions (since it knows the txid) and construct the merkle proof out of them. Amount of this ephemeral data is 32 bytes * #txs_per_block, for a block of 2^20 txs, this results in 32 MB of ephemeral data released. Blocks without ephemeral data released should be discarded by the nodes in the network (not sure if this is possible, since not all nodes will be interested in collecting the ephemeral data for a block - only parties transacting in that block)
+When a block is mined we need to distribute proof data for parties transacting in that block (so they can later on construct a merkle proof when spending their seals). To achieve this without interactivity we just release the tx ids (transaction hashes) of all the transactions included in a block to the network, this data is ephemeral and is not retained by the network. A transacting party can collect the tx ids (hashes), see which of them corresponds to its transactions (since it knows the txid) and construct the merkle proof out of them. Amount of this ephemeral data is 32 bytes \* #txs_per_block, for a block of 2^20 txs, this results in 32 MB of ephemeral data released. Blocks without ephemeral data released should be discarded by the nodes in the network (not sure if this is possible, since not all nodes will be interested in collecting the ephemeral data for a block - only parties transacting in that block)
 
 ### Ephemeral data caching
 
 There could be independent parties storing this ephemeral data for short periods of time (1-2 weeks), these parties would compute the merkle path on request for users, while users pay a small fee for their service, this service would be essential for lightning network, as in case of force closure other party might not be readily online to collect the proof.
-
 
 ## Chain state
 
@@ -52,7 +42,7 @@ Every seal that's ever closed in a block must be put into some set by the full n
 
 We wil use bitmaps for storing this set of spent seals, where every seal is represented as a single bit, so every block would require num_of_opened_seals/8 bytes of additional chain state storage.
 
-If we take the average output count per transaction in bitcoin, which is currently 3 (https://bitcoinvisuals.com/chain-output-count-tx), we see that on average maximum number of opened seals per block is 3 * #txs_per_block. For 2^20 txs per block this gives us a chain state growth of around 384kB per block.
+If we take the average output count per transaction in bitcoin, which is currently 3 (https://bitcoinvisuals.com/chain-output-count-tx), we see that on average maximum number of opened seals per block is 3 \* #txs_per_block. For 2^20 txs per block this gives us a chain state growth of around 384kB per block.
 
 ### Persistent storage IOPS requirements
 
@@ -80,13 +70,14 @@ NOTE: Array<[u24, u24]> is an array of single-use-seals sequence numbers (which 
 ### Transaction (WIP)
 
 Unsigned part:
+
 - merkle proof down to the prior block in the block merkle tree (this proof path changes deterministically with every new block, therefore it is important for the miner's mempool to be able to augment this path)
 - merkle proof of opening transaction included in the block where this seal was open
-- merkle proof of this seal inside the transaction 
-
+- merkle proof of this seal inside the transaction
 - signature/scriptSig
 
 Signed part:
+
 - publicKey/lockingScript
 - data/state transition commitment
 - number of new opened seals
