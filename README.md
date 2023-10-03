@@ -42,7 +42,7 @@ There could be independent parties storing this ephemeral data for short periods
 
 ## Chain state
 
-Every seal closed within a block must be put into some set by the full nodes, this set is then used to verify that single-use-seals closed in subsequent blocks don't close an already closed single-use-seal (single-use-seal can be closed only once). This can be optimized through the use of an appropriately-sized Bloom filter.
+Every seal closed within a block must be put into some set by the full nodes, this set is then used to verify that single-use-seals closed in subsequent blocks don't close an already closed single-use-seal (single-use-seal can be closed only once). This could be optimized via the use of [Roaring Bitmaps](https://github.com/RoaringBitmap/croaring-rs).
 
 ### Bitmaps
 
