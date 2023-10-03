@@ -2,7 +2,7 @@
 
 ## Abstract
 
-The main idea is to solve interactivity, bandwidth, and data availability requirements for the original Prime proposal. To do this, we try to think about the most compressed form of a single-use-seal, and then provide the list of closed seals in every block. This makes the block size O(n) instead of O(1), however if we keep the scaling factor (bytes needed to represent a seal) low, this still results in over 100x improvement in throughput over the current Bitcoin blockchain. The reason we need to include a list of closed seals in every block is to achieve non-interactivity of the protocol. This makes it so users need not retain the proofs themselves, which in the original Prime proposal amounted to 6GB per UTXO per year, and if interrupted or lost, the seal would be insecure.
+The main idea is to solve interactivity, bandwidth, and data availability requirements for [the original Prime proposal](https://github.com/LNP-BP/layer1). To do this, we try to think about the most compressed form of a single-use-seal, and then provide the list of closed seals in every block. This makes the block size O(n) instead of O(1), however if we keep the scaling factor (bytes needed to represent a seal) low, this still results in over 100x improvement in throughput over the current Bitcoin blockchain. The reason we need to include a list of closed seals in every block is to achieve non-interactivity of the protocol. This makes it so users need not retain the proofs themselves, which in the original Prime proposal amounted to 6GB per UTXO per year, and if interrupted or lost, the seal would be insecure.
 
 ## Transaction
 
