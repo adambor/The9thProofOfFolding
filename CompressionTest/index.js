@@ -1,5 +1,6 @@
 const zlib = require("zlib");
-//const zstd = require('zstd');
+const {deltaCompression} = require("./deltaCompression");
+const {numToBuffer} = require("./varInt");
 //const zstd = require('@skhaz/zstd');
 
 //Number of transactions spending inputs that are of certain age
@@ -33,6 +34,7 @@ const pctArr = arr.map(e => e/total);
 
 console.log(pctArr);
 
+//Data about the txs per block and seals opened in a single block
 const txsPerBlock = 1024*1024;
 const openedSealsPerBlock = 3*txsPerBlock;
 const blockMultiplier = (16*1024*1024); //Must be strictly larger than openedSealsPerBlock
@@ -68,10 +70,8 @@ for(let i=0;i<pctArr.length;i++) {
 
 sealArr.sort((a,b) => a-b);
 
-console.log(sealArr);
 
-const blockSealArr = {};
-
+//Map seals to tuples: {block, sealNum}
 const sealObjArr = sealArr.map(e => {
     const block = Math.floor(e/blockMultiplier);
     const sealNum = e-(block*blockMultiplier);
@@ -81,211 +81,41 @@ const sealObjArr = sealArr.map(e => {
     };
 });
 
+const blockSealArr = {};
+
+//Create a dict mapping {[block_num]: Array<sealNum>}
 sealObjArr.forEach(e => {
     if(blockSealArr[e.block]==null) blockSealArr[e.block] = [];
     blockSealArr[e.block].push(e.sealNum);
 });
 
+//Extract keys (block heights) from dict
 const blockNums = Object.keys(blockSealArr).map(e => parseInt(e));
-
-/*
-0-252: 1 byte
-253: 2 bytes
-254: 3 bytes
-255: 4 bytes
- */
-function deltaCompressionBytes(sortedArray) {
-    let lastElement = 0;
-    let totalBytes = 0;
-    for(let element of sortedArray) {
-        const delta = element-lastElement;
-        if(delta<=252) {
-            totalBytes += 1;
-        } else if(delta<256*256) {
-            totalBytes += 3;
-        } else if(delta<256*256*256) {
-            totalBytes += 4;
-        } else if(delta<256*256*256*256) {
-            totalBytes += 5;
-        }
-        lastElement = element;
-    }
-    return totalBytes;
-}
-
-/*
-Binary prefix:
-00 - 6 bits
-01 - 14 bits
-10 - 22 bits
-11 - 30 bits
- */
-function deltaCompressionV2Bytes(sortedArray) {
-    let lastElement = 0;
-    let totalBytes = 0;
-    for(let element of sortedArray) {
-        const delta = element-lastElement;
-        if(delta<64) {
-            totalBytes += 1;
-        } else if(delta<64*256) {
-            totalBytes += 2;
-        } else if(delta<64*256*256) {
-            totalBytes += 3;
-        } else if(delta<64*256*256*256) {
-            totalBytes += 4;
-        }
-        lastElement = element;
-    }
-    return totalBytes;
-}
-
-
-/*
-Binary prefixes:
-7 bits - 8 bits
-14 bits - 16 bits
-21 bits - 24 bits
-29 bits - 32 bits
- */
-function deltaCompressionV3Bytes(sortedArray) {
-    let lastElement = 0;
-    let totalBytes = 0;
-    for(let element of sortedArray) {
-        const delta = element-lastElement;
-        if(delta<128) {
-            totalBytes += 1;
-        } else if(delta<128*128) {
-            totalBytes += 2;
-        } else if(delta<128*128*128) {
-            totalBytes += 3;
-        } else if(delta<256*128*128*128) {
-            totalBytes += 4;
-        }
-        lastElement = element;
-    }
-    return totalBytes;
-}
-
-function numToBuffer(delta) {
-    if(delta<128) {
-        const buff = Buffer.alloc(1);
-        buff.writeUIntBE(delta, 0, 1);
-        return buff;
-    } else if(delta<128*128) {
-        const buff = Buffer.alloc(2);
-        const b1 = Math.floor(delta/128);
-        const b2 = delta % 128;
-        buff.writeUIntBE(b1+128, 0, 1);
-        buff.writeUIntBE(b2, 1, 1);
-        return buff;
-    } else if(delta<128*128*128) {
-        const buff = Buffer.alloc(3);
-        const b12 = Math.floor(delta/128);
-        const b1 = Math.floor(b12/128);
-        const b2 = b12 % 128;
-        const b3 = delta % 128;
-        buff.writeUIntBE(b1+128, 0, 1);
-        buff.writeUIntBE(b2+128, 1, 1);
-        buff.writeUIntBE(b3, 2, 1);
-        return buff;
-    } else if(delta<128*128*128*128) {
-        const buff = Buffer.alloc(4);
-        const b12 = Math.floor(delta/(128*128));
-        const b1 = Math.floor(b12/128);
-        const b2 = b12 % 128;
-        const b34 = delta % (128*128);
-        const b3 = Math.floor(b34/128);
-        const b4 = b34 % 128;
-        buff.writeUIntBE(b1+128, 0, 1);
-        buff.writeUIntBE(b2+128, 1, 1);
-        buff.writeUIntBE(b3+128, 2, 1);
-        buff.writeUIntBE(b4, 3, 1);
-        return buff;
-    }
-}
-
-function deltaCompressionV3(sortedArray) {
-    let lastElement = 0;
-    const bufferArr = [];
-    for(let element of sortedArray) {
-        const delta = element-lastElement;
-        bufferArr.push(numToBuffer(delta));
-        lastElement = element;
-    }
-    return Buffer.concat(bufferArr);
-}
-
-function deltaCompressionV4(sortedArray) {
-    let lastElement = 0;
-    const bufferArr = [];
-    for(let element of sortedArray) {
-        const delta = element-lastElement;
-        const buff = Buffer.alloc(3);
-        buff.writeUIntBE(delta, 0, 3);
-        bufferArr.push(buff);
-        lastElement = element;
-    }
-    return Buffer.concat(bufferArr);
-}
-
-function deltaDecompressionV3(dataBuffer) {
-    let lastElement = 0;
-
-    const arr = [];
-
-    let pointer = 0;
-    let currentLength = 0;
-    let sum = 0;
-    while(pointer<dataBuffer.length) {
-        let b = dataBuffer[pointer];
-        currentLength++;
-        if(b<128) {
-            sum *= 128;
-            sum += b;
-
-            lastElement += sum;
-            arr.push(lastElement);
-
-            currentLength = 0;
-            sum = 0;
-        } else {
-            sum *= 128;
-            sum += b-128;
-        }
-        pointer++;
-    }
-
-    return arr;
-}
-
-function compress(buff) {
-    return zlib.gzipSync(buff);
-    //return zstd.compressSync(buff);
-}
-
 console.log("Block list size: ", blockNums.length);
 
-const blockNumDeltaCompressed = deltaCompressionV3(blockNums);
+//Compress block heights with delta compression
+const blockNumDeltaCompressed = deltaCompression(blockNums);
 
 const dataLengthBuffers = [];
 const blockEntriesBuffers = [];
-
 for(let block of blockNums) {
     const sealArr = blockSealArr[block];
 
+    //Buffer of seal array lengths for each block height
     dataLengthBuffers.push(numToBuffer(sealArr.length));
-
-    // const dataLenBuff = Buffer.alloc(3);
-    // dataLenBuff.writeUIntBE(sealArr.length, 0, 3);
-    // dataLengthBuffers.push(dataLenBuff);
-
-    blockEntriesBuffers.push(deltaCompressionV3(sealArr));
+    //Encoded deltaCompressed array of seals in each block
+    blockEntriesBuffers.push(deltaCompression(sealArr));
 }
 
+//Buffer of seal array lengths per block
 const dataLengths = Buffer.concat(dataLengthBuffers);
+
+//Buffer of seal arrays (delta compressed and concatenated)
 const blockEntries = Buffer.concat(blockEntriesBuffers);
 
+//Final seal set buffer
 const finalBuffer = Buffer.concat([
+    numToBuffer(blockNums.length),
     blockNumDeltaCompressed,
     dataLengths,
     blockEntries
@@ -293,6 +123,15 @@ const finalBuffer = Buffer.concat([
 
 console.log("Final size after delta compression: ", finalBuffer.length);
 
-const compressed = compress(finalBuffer);
+//Compress using gzip, alternatively brotli can be used, but that takes longer to run the compression
+const startTime = Date.now();
+const compressed = zlib.gzipSync(finalBuffer, {
+    chunkSize: 16*1024,
+    windowBits: 15,
+    level: 9,
+    memLevel: 9,
+    strategy: 3
+});
+console.log("ZLIB compression time: ", Date.now()-startTime);
 
 console.log("Final size after zlib compression: ", compressed.length);
