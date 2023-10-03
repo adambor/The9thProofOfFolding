@@ -22,7 +22,13 @@ To keep the single-use-seal definition as compact as possible we decided to use 
 
 We defined single-use-seal only as a tuple of 2 numbers with the actual single-use-seal definition (scriptPubKey/publicKey) committed in block's txs merkle root. Therefore to spend a single-use-seal, you need to provide a merkle proof to the single-use-seal opening in the prior block (as defined by the `(u24, u24)` tuple). The transaction is also just committed in current block's merkle root, and only single-use-seals closed in that transaction are publicly exposed in the list of closed seals included in that block.
 
-We need a way to succinctly prove that each transaction is valid: - has to spend a valid single-use-seal opened in a prior transaction - has valid scriptSig/signature corresponding to the publicKey/lockingScript, defined in the transaction opening the seal - is committed in the block's merkle root of all txns - all single-use-seals closed in the transaction are included in the list of closed seals - the sum of number of opened single-use-seals for each transaction adds up to the number of new seals opened in this block as stated in a block header.
+We need a way to succinctly prove that each transaction is valid:
+
+- has to spend a valid single-use-seal opened in a prior transaction
+- has valid scriptSig/signature corresponding to the publicKey/lockingScript, defined in the transaction opening the seal
+- is committed in the block's merkle root of all txns
+- all single-use-seals closed in the transaction are included in the list of closed seals
+- the sum of number of opened single-use-seals for each transaction adds up to the number of new seals opened in this block as stated in a block header.
 
 For these proofs we utilize STARKs, since they are post-quantum, require no trusted setup and are efficient for computations with loops. STARK proof size scales logarithmically with computation size (in this context, number of txs).
 
@@ -85,4 +91,4 @@ Signed part:
 
 ## Conclusion
 
-We demonstrate that the original Prime design can be extended with a different block format which can securely verify a compact seal definition using zk-STARKs, which can support up to 2^20 (1,048,576) transactions per block. At a minimum fee of 1 sat per seal, this can net miners ~1.4 additional BTC per day while supporting over a billion client-side validated transactions per day.
+We demonstrate that the original Prime design can be extended with a different block format which can securely verify a compact seal definition using STARKs, which can support up to 2^20 (1,048,576) transactions per block. At a minimum fee of 1 sat per seal, this can net miners ~1.4 additional BTC per day while supporting over a billion batched client-side validated transactions per day.
