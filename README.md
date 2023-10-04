@@ -90,7 +90,7 @@ Signed part:
 Unsigned part:
 
 - (u24, u24) - a single-use-seal sequence number (this is left unsigned, so it can be filled in by the miner, in case the transaction spends a seal that was opened in the same block)
-- Array\<hash256\> - a combined merkle proof that contains:
+- Array\<hash256\> - a combined merkle proof that contains (check [the diagram](Diagram.png) for visualization):
 	- merkle proof down to the prior block in the block merkle tree (this proof path changes deterministically with every new block, therefore it is important for the miner's mempool to be able to augment this path)
 	- merkle proof of opening transaction included in the block where this seal was open
 	- merkle proof of this seal inside the transaction
