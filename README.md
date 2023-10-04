@@ -79,8 +79,8 @@ NOTE: Array<(u24, u24)> is an array of single-use-seals sequence numbers (which 
 
 Signed part:
 
-- u32 - version
-- u32 - locktime
+- u32 - version & bit flags - e.g. locktime direction (less than or greater than), absolute/relative timelock
+- u32 - locktime - can be used in both ways, either that blockNumber>locktime or blockNumber<locktime
 - hash256 - data/state transition commitment
 - u8 - number of new opened seals
 - hash256 - merkle root of new opened seals (merkle tree of all opened seals)
