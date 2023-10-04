@@ -1,0 +1,78 @@
+
+Token amounts:
+	- Alice's token amount - X
+	- Bob's token amount - Y
+
+Parties:
+	- Alice
+	- Bob
+
+Funding tx:
+	Inputs:
+		- any
+	Data commitment:
+		- send X+Y tokens to ~:0
+	Outputs:
+		- Ft = 2-of-2 (A+B) schnorr multisig
+
+Alice (mirrored for Bob):
+	Commitment tx:
+		Inputs:
+			- Ft
+		Data commitment:
+			- send X+Y tokens to ~:0
+		Outputs:
+			- Ct = 2-of-2 (A+B) schnorr multisig
+
+	Force close tx:
+		Timelock:
+			- relative +144 blocks
+		Inputs:
+			- Ct (partially signed by Bob)
+		Data commitment:
+			- send X tokens to ~:0
+			- send Y tokens to ~:1
+		Output:
+			- Alice
+			- Bob
+
+	Punishment tx:
+		Inputs:
+			- Ct (partially signed by Bob - signature acts as revocation secret)
+		Data commitment:
+			- send X+Y tokens to ~:0
+		Output:
+			- Alice
+
+PTLC amount - Z
+
+Adding PTLC output (A->B):
+	Commitment tx:
+		Inputs:
+			- Ft
+		Data commitment:
+			- send X+Y-Z tokens to ~:0
+			- send Z tokens to ~:1
+		Outputs:
+			- Ct = 2-of-2 (A+B) schnorr multisig
+			- Ptlc = 2-of-2 (A+B) schnorr multisig
+
+	Resolve tx (Bob can use this transaction in case he gets to know the adaptor):
+		Locktime:
+			- Absolute <800000
+		Inputs:
+			- Ptlc (partially signed by A minus adaptor)
+		Data commitment:
+			- send Z tokens to ~:0
+		Outputs:
+			- Bob
+
+	Refund tx (Alice can issue a refund after a certain blockheight):
+		Locktime:
+			- Absolute >800000
+		Inputs:
+			- Ptlc (partially signed by B)
+		Data commitment:
+			- send Z tokens to ~:0
+		Outputs:
+			- Alice
