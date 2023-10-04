@@ -2,7 +2,7 @@
 
 ## Abstract
 
-The main idea is to solve interactivity, bandwidth, and data availability requirements for [the original Prime proposal](https://github.com/LNP-BP/layer1). To do this, we try to think about the most compressed form of a single-use-seal, and then provide the list of closed seals in every block. This makes the block size O(n) instead of O(1), however if we keep the scaling factor (bytes needed to represent a seal) low, this still results in over 100x improvement in throughput over the current Bitcoin blockchain. The reason we need to include a list of closed seals in every block is to achieve non-interactivity of the protocol. This makes it so users need not to retain proofs of non-inclusion, which in the original Prime proposal amounted to 6GB per UTXO per year, and if only one proof of non-inclusion was lost or missing, the seal would become unspendable. In our proposal the proofs are of fixed size, around 1536 bytes, and can be deterministically adjusted by just syncing to the latest blockheader (no need to receive ephemeral data for every block, like is the case with original Prime proposal).
+The main idea is to solve the interactivity, bandwidth, and data availability requirements for [the original Prime proposal](https://github.com/LNP-BP/layer1). To do this, we try to think about the most compressed form of a single-use-seal, and then provide the list of closed seals in every block. This makes the block size O(n) instead of O(1), however if we keep the scaling factor (bytes needed to represent a seal) low, this still results in over 100x improvement in throughput over the current Bitcoin blockchain. The reason we need to include a list of closed seals in every block is to achieve non-interactivity of the protocol. This makes it so users need not to retain proofs of non-inclusion, which in the original Prime proposal amounted to 6GB per UTXO per year, and if only one proof of non-inclusion was lost or missing, the seal would become unspendable. In our proposal the proofs are of fixed size, around 1536 bytes, and can be deterministically adjusted by just syncing to the latest blockheader (no need to receive ephemeral data for every block, like is the case with original Prime proposal).
 
 ## Transaction
 
@@ -30,11 +30,11 @@ We need a way to succinctly prove that each transaction is valid:
 - all single-use-seals closed in the transaction are included in the list of closed seals
 - the sum of number of opened single-use-seals for each transaction adds up to the number of new seals opened in this block as stated in a block header.
 
-For these proofs we utilize STARKs, since they are post-quantum, require no trusted setup and are efficient for computations with loops. STARK proof size scales logarithmically with computation size (in this context, number of txs).
+For these proofs we utilize STARKs, since they are post-quantum, require no trusted setup and are efficient for computations with loops. STARK proof size scales logarithmically with computation size (in this context, number of txs), and so it makes for a much smaller proof than having to provide and verify every transaction signature. This is not necessarily a zero-knowledge version of STARK proofs, which is why we call them succinct STARKs and not zk STARKs. Client-side validation takes care of much of the zero-knowledge part already, simplifying L1 development.
 
 ## Ephemeral data
 
-When a block is mined we need to distribute proof data for parties transacting in that block (so they can later on construct a merkle proof when spending their seals). To achieve this without interactivity we just release the tx ids (transaction hashes) of all the transactions included in a block to the network, this data is ephemeral and is not retained by the network. A transacting party can collect the tx ids (hashes), see which of them corresponds to its transactions (since it knows the txid) and construct the merkle proof out of them. Amount of this ephemeral data is 32 bytes \* #txs_per_block, for a block of 2^20 txs, this results in 32 MB of ephemeral data released. Blocks without ephemeral data released should be discarded by the nodes in the network (not sure if this is possible, since not all nodes will be interested in collecting the ephemeral data for a block - only parties transacting in that block).
+When a block is mined we need to distribute proof data for parties transacting in that block (so they can later on construct a merkle proof when spending their seals). To achieve this without interactivity we just release the tx ids (transaction signatures) of all the transactions included in a block to the network, this data is ephemeral and is not retained by the network. A transacting party can collect the tx ids (transaction signatures), see which of them corresponds to its transactions (since it knows the txid) and construct the merkle proof out of them. Amount of this ephemeral data is 56 bytes \* #txs_per_block, for a block of 2^20 txs, this results in 56 MB of ephemeral data released. Blocks without ephemeral data released should be discarded by the nodes in the network (not sure if this is possible, since not all nodes will be interested in collecting the ephemeral data for a block - only parties transacting in that block).
 
 ### Ephemeral data caching
 
@@ -89,6 +89,26 @@ Signed part:
 - number of new opened seals
 - merkle root of new opened seals
 
+## Applications
+
+Prime helps scale certain applications that are difficult to scale in other ways.
+
+### Unique Digital Assets (UDAs)
+
+UDAs, or NFTs, are unique assets and thus have no liquidity, and so there can be no Lightning Network version of a UDA. Prime can simplify what's needed to secure an RGB21 UDA, however, and thus meet scaling needs.
+
+### Atomic Swaps
+
+A transaction with multiple inputs and outputs between the buyer and seller can be used to perform a special kind of transaction that is trustless and permissionless, requiring no escrow service, and is entirely P2P, called a [scriptless atomic swap](https://github.com/orgs/LNP-BP/discussions/125). The buyer spends the single use seal holding their Radiant BTC, and the seller spends their single use seal holding their RGB20 or RGB21 asset. In the same transaction, two new seals are created, one for the buyer and one for the seller, just with the assets swapped between them.
+
+### Scaling Lightning
+
+Lightning channel opens and closes could also be coordinated using single use seals. This would be using Radiant BTC, and could be bridged out of the Prime chain to the legacy Lightning Network by nodes capable of settlement transactions via Prometheus.
+
+#### Challenges
+
+Current BOLT lightning implementation uses HTLCs to ensure atomicity throughout multihop payments - this depends on transparent on-chain transactions revealing the pre-image, so other parties could use the pre-image to settle their hops on the route. This might be problematic, since transaction data is not released as ephemeral data (only the txId is) when a block is mined, so it might be possible to include a transaction revealing the pre-image in a block without making it public to the network (e.g. by sending it directly to a miner). We can solve this by using PTLCs and adaptor signatures instead of HTLCs, and making transaction IDs a signature of the transaction input (instead of hash256 of the tx data), the signature already contains the hash of the transaction as an input to the EdDSA algorithm, so the signature will be unique and inherently contain a commitment to the transaction data. This means that the txId of the transaction will be 56-byte long (depending on the curve used - [P-224 seems to work over a STARK friendly field](https://ethresear.ch/t/zk-stark-for-schnorr-signature-verification/7034) and provides enough security - 112-bits) instead of 32-bytes. As this txId HAS to be released by the miner upon mining the block as ephemeral data, the signatures would be revealed - which leads to revealing the signature adaptor. Please note that Schnorr signature half-aggregation unfortunately cannot be used because that [breaks adaptor signatures](https://www.gijsvandam.nl/post/why-does-signature-half-aggregation-break-adaptor-signatures/), so this rules out [CISA](https://github.com/BlockstreamResearch/cross-input-aggregation) support.
+
 ## Conclusion
 
-We demonstrate that the original Prime design can be extended with a different block format which can securely verify a compact seal definition using STARKs, which can support up to 2^20 (1,048,576) transactions per block. At a minimum fee of 1 sat per seal, this can net miners ~1.4 additional BTC per day while supporting over a billion batched client-side validated transactions per day.
+We demonstrate that the original Prime design can be extended with a different block format which can securely verify a compact seal definition using STARKs, which can support up to 2^20 (1,048,576) transactions per block. At a minimum fee of 1 sat per seal, this can net miners ~1.4 additional BTC per day while supporting over a billion batched client-side validated transactions per day, while making very efficient use of CPU, RAM, and bandwidth. This reduces the hardware requirements for running your own node, and with support for non-interactive transactions, should result in a user experience more similar to L1 than to L2.
