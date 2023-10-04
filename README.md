@@ -99,7 +99,7 @@ UDAs, or NFTs, are unique assets and thus have no liquidity, and so there can be
 
 ### Atomic Swaps
 
-A transaction with multiple inputs and outputs between the buyer and seller can be used to perform a special kind of transaction that is trustless and permissionless, requiring no escrow service, and is entirely P2P, called an atomic swap. The buyer spends the single use seal holding their Radiant BTC, and the seller spends their single use seal holding their RGB20 or RGB21 asset. In the same transaction, two new seals are created, one for the buyer and one for the seller, just with the assets swapped between them.
+A transaction with multiple inputs and outputs between the buyer and seller can be used to perform a special kind of transaction that is trustless and permissionless, requiring no escrow service, and is entirely P2P, called a [scriptless atomic swap](https://github.com/orgs/LNP-BP/discussions/125). The buyer spends the single use seal holding their Radiant BTC, and the seller spends their single use seal holding their RGB20 or RGB21 asset. In the same transaction, two new seals are created, one for the buyer and one for the seller, just with the assets swapped between them.
 
 ### Scaling Lightning
 
