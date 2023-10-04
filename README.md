@@ -73,21 +73,33 @@ A block of 2^20 txs produced every 600 seconds, would require 1700 IOPS random r
 
 NOTE: Array<(u24, u24)> is an array of single-use-seals sequence numbers (which can be enforceably sorted), this allows us to further shrink the size of the array in a block by using delta compression (by storing the differences between adjacent elements in the array). We can then run a compression algorithm on top such as gzip (resulting in ~2 bytes per element) or brotli (resulting in ~1.8 bytes per element), for a maximum block size in the vicinity of 2MB.
 
-### Transaction (WIP)
+### Transaction
 
-Unsigned part:
-
-- merkle proof down to the prior block in the block merkle tree (this proof path changes deterministically with every new block, therefore it is important for the miner's mempool to be able to augment this path)
-- merkle proof of opening transaction included in the block where this seal was open
-- merkle proof of this seal inside the transaction
-- signature/scriptSig
+- Array<SealIn> - input seals for the transaction
 
 Signed part:
 
-- publicKey/lockingScript
-- data/state transition commitment
-- number of new opened seals
-- merkle root of new opened seals
+- u32 - version & bit flags - e.g. locktime direction (less than or greater than), absolute/relative timelock
+- u32 - locktime - can be used in both ways, either that blockNumber>locktime or blockNumber<locktime
+- hash256 - data/state transition commitment
+- u8 - number of new opened seals
+- hash256 - merkle root of new opened seals (merkle tree of all opened seals)
+
+#### Seal In
+
+Unsigned part:
+
+- (u24, u24) - a single-use-seal sequence number (this is left unsigned, so it can be filled in by the miner, in case the transaction spends a seal that was opened in the same block)
+- Array\<hash256\> - a combined merkle proof that contains (check [the diagram](Diagram.png) for visualization):
+	- merkle proof down to the prior block in the block merkle tree (this proof path changes deterministically with every new block, therefore it is important for the miner's mempool to be able to augment this path)
+	- merkle proof of opening transaction included in the block where this seal was open
+	- merkle proof of this seal inside the transaction
+
+Signed part:
+
+- u64 - blinding for public key commitment (maybe not needed, but just makes sure that the commitment hash is different even with the same public key)
+- publicKey - revealed public key as committed to in the seal opening tx
+- signature - a valid signature for the transaction hash and public key
 
 ## Applications
 
