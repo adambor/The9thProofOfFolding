@@ -4,6 +4,10 @@
 
 The main idea is to solve the interactivity, bandwidth, and data availability requirements for [the original Prime proposal](https://github.com/LNP-BP/layer1). To do this, we try to think about the most compressed form of a single-use-seal, and then provide the list of closed seals in every block. This makes the block size O(n) instead of O(1), however if we keep the scaling factor (bytes needed to represent a seal) low, this still results in over 100x improvement in throughput over the current Bitcoin blockchain. The reason we need to include a list of closed seals in every block is to achieve non-interactivity of the protocol. This makes it so users need not to retain proofs of non-inclusion, which in the original Prime proposal amounted to 6GB per UTXO per year, and if only one proof of non-inclusion was lost or missing, the seal would become unspendable. In our proposal the proofs are of fixed size, around 1536 bytes, and can be deterministically adjusted by just syncing to the latest blockheader (no need to receive ephemeral data for every block, like is the case with original Prime proposal).
 
+## Single-use-seals
+
+Prime (and in turn also our proposal), uses a concept of single-use-seals instead of UTXOs. Single-use-seal is a cryptographic primitive that can be closed/spent in the future but only once and only over one message/commitment - they are utilized for double-spend protection. Unlike UTXOs in bitcoin which contains some inherent value denominated in bitcoin (and only in bitcoin), the value of the single-use-seal is purely defined by the client-side-validated state assigned to it (this can be token amount, UDA/NFT, identity, or any other rich state for arbitrary complex smart contracts). There also can be multiple states assigned to single single-use-seal, so you can hold numerous token balances, UDAs/NFTs, and other smart contract states on only one single-use-seal. To advance the state (transfer tokens, transfer UDAs/NFTs, revoke identity) you need to spend/close a single-use-seal where this state is assigned to, and in the transaction spending/closing it, commit to a state transition (e.g. transfer of 10 tokens to B - I have 100 tokens, I assign 10 tokens to a single-use-seal controlled by B, and assign the rest 90 tokens to a single-use-seal controlled by me).
+
 ## Transaction
 
 A transaction in our proposal is similar to a Bitcoin transaction, with the UTXOs replaced with single-use-seals. Each transaction has one or more input single-use-seals (each of the inputs need to be satisfied with a valid scriptSig), commits to a data hash (e.g. RGB state transition), and optionally creates one or more new single-use-seals.
@@ -12,6 +16,22 @@ A transaction in our proposal is similar to a Bitcoin transaction, with the UTXO
 -> input seal 0 --+-- data hash --+-- new seal 0 ->
 -> input seal 1 --+               +-- new seal 1 ->
                                   +-- new seal 2 ->
+```
+
+### Example transaction
+
+Here we create a transaction corresponding to our example above, A owns 100 tokens and wants to send 10 tokens to B. A creates an on-chain transaction that spends the single-use-seal A0 (where 100 tokens are assigned to) and commits to a state transition:
+- sending 10 tokens to a newly created single-use-seal B0 controlled by B
+- sending 90 tokens as a change to a newly created single-use-seal A1 controlled by A.
+
+```
+                             Hash of a state transition (10 tokens -> B0, 90 tokens -> A1)
+							   |
+		Initially assigned state of 100 tokens	   |	 New state, B0: 10 tokens, A1: 90 tokens
+Off-chain		          |		     	   |			    |
+--------------------------------------------------------------------------------------------------------------
+On-chain	-> input seal A0 controlled by A --+-- data hash --+-- new seal B0 controlled by B ->
+						  		   +-- new seal A1 controlled by A ->
 ```
 
 ## Seal definition
