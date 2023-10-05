@@ -12,9 +12,11 @@ The main idea is to solve the interactivity, bandwidth, and data availability re
 |----------------------------------------|-----------|--------------------|
 | Proof size per seal                    | ~6GB/year | ~2kB constant size |
 | Chain state                            | 10MB/year | <20GB/year         |
-| Light client / SPV blockheaders        | 10MB/year | 10MB/year*         |
+| Light client / SPV blockheaders        | 10MB/year | 10MB/year\*         |
 | TPS                                    | Unbounded | 1750               |
 | Always online / Need to use watchtower | yes       | no                 |
+
+\* The light client of 9th Proof can either rely on PoW (like SPV as defined in bitcoin whitepaper), or can use STARK proofs that prove the validity of the chain without having to sync the block content.
 
 ## Single-use-seals
 
