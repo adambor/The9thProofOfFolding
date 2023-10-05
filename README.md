@@ -111,7 +111,7 @@ NOTE: Array<(u24, u24)> is an array of single-use-seals sequence numbers (which 
 
 ### Transaction
 
-- Array<SealIn> - input seals for the transaction
+- Array\<SealIn\> - input seals for the transaction
 
 Signed part:
 
