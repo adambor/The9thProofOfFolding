@@ -144,3 +144,7 @@ Current BOLT lightning implementation uses HTLCs to ensure atomicity throughout 
 ## Conclusion
 
 We demonstrate that the original Prime design can be extended with a different block format which can securely verify a compact seal definition using STARKs, which can support up to 2^20 (1,048,576) transactions per block. At a minimum fee of 1 sat per seal, this can net miners ~1.4 additional BTC per day while supporting over a billion batched client-side validated transactions per day, while making very efficient use of CPU, RAM, and bandwidth. This reduces the hardware requirements for running your own node, and with support for non-interactive transactions, should result in a user experience more similar to L1 than to L2.
+
+## Acknowledgements
+
+We would like to extend our gratitude to Dr. Maxim Orlovsky, the author of [the Prime paper](https://github.com/LNP-BP/layer1), which sparked an idea to start researching blockchain-less and purely client-side-validated designs. 
