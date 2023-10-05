@@ -27,8 +27,8 @@ Here we create a transaction corresponding to our example above, A owns 100 toke
 ```
                              Hash of a state transition (10 tokens -> B0, 90 tokens -> A1)
 							   |
-		Initially assigned state of 100 tokens	   |
-Off-chain		          |		     	   |
+		Initially assigned state of 100 tokens	   |	 New state, B0: 10 tokens, A1: 90 tokens
+Off-chain		          |		     	   |			    |
 --------------------------------------------------------------------------------------------------------------
 On-chain	-> input seal A0 controlled by A --+-- data hash --+-- new seal B0 controlled by B ->
 						  		   +-- new seal A1 controlled by A ->
