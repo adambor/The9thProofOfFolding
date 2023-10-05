@@ -18,6 +18,22 @@ A transaction in our proposal is similar to a Bitcoin transaction, with the UTXO
                                   +-- new seal 2 ->
 ```
 
+### Example transaction
+
+Here we create a transaction corresponding to our example above, A owns 100 tokens and wants to send 10 tokens to B. A creates an on-chain transaction that spends the single-use-seal A0 (where 100 tokens are assigned to) and commits to a state transition:
+- sending 10 tokens to a newly created single-use-seal B0 controlled by B
+- sending 90 tokens as a change to a newly created single-use-seal A1 controlled by A.
+
+```
+                             Hash of a state transition (10 tokens -> B0, 90 tokens -> A1)
+							   |
+		Initially assigned state of 100 tokens	   |
+Off-chain		          |		     	   |
+--------------------------------------------------------------------------------------------------------------
+On-chain	-> input seal A0 controlled by A --+-- data hash --+-- new seal B0 controlled by B ->
+						  		   +-- new seal A1 controlled by A ->
+```
+
 ## Seal definition
 
 To keep the single-use-seal definition as compact as possible we decided to use a tuple of `(u24, u24)`, where the first u24 represents the block number when the seal was open, and the second u24 represents the index of the seal in the opening block. A block indicates how many seals it opens in a single u24, then is followed by an encoded series of seal tuples for seals to be closed within this block that were opened in prior blocks. Additional encoding optimizations can be gained from segmenting the seal closing region into seals that can make use of relative values, further reducing the number of bytes needed to represent them.
