@@ -9,11 +9,12 @@ The main idea is to solve the interactivity, bandwidth, and data availability re
 ## Comparison with original Prime
 
 | Prime                                  | Original  | 9th Proof          |
-|----------------------------------------|-----------|--------------------|
+| -------------------------------------- | --------- | ------------------ |
 | Proof size per seal                    | ~6GB/year | ~2kB constant size |
 | Chain state                            | 10MB/year | <20GB/year         |
-| Light client / SPV blockheaders        | 10MB/year | 10MB/year\*         |
+| Light client / SPV blockheaders        | 10MB/year | 10MB/year\*        |
 | TPS                                    | Unbounded | 1750               |
+| Maximum transactions per block         | Unbounded | 2^20 (1,048,576)   |
 | Always online / Need to use watchtower | yes       | no                 |
 
 \* The light client of 9th Proof can either rely on PoW (like SPV as defined in bitcoin whitepaper), or can use STARK proofs that prove the validity of the chain without having to sync the block content.
@@ -35,6 +36,7 @@ A transaction in our proposal is similar to a Bitcoin transaction, with the UTXO
 ### Example transaction
 
 Here we create a transaction corresponding to our example above, A owns 100 tokens and wants to send 10 tokens to B. A creates an on-chain transaction that spends the single-use-seal A0 (where 100 tokens are assigned to) and commits to a state transition:
+
 - sending 10 tokens to a newly created single-use-seal B0 controlled by B
 - sending 90 tokens as a change to a newly created single-use-seal A1 controlled by A.
 
@@ -125,9 +127,9 @@ Unsigned part:
 
 - (u24, u24) - a single-use-seal sequence number (this is left unsigned, so it can be filled in by the miner, in case the transaction spends a seal that was opened in the same block)
 - Array\<hash256\> - a combined merkle proof that contains (check [the diagram](Diagram.png) for visualization):
-	- merkle proof down to the prior block in the block merkle tree (this proof path changes deterministically with every new block, therefore it is important for the miner's mempool to be able to augment this path)
-	- merkle proof of opening transaction included in the block where this seal was open
-	- merkle proof of this seal inside the transaction
+  - merkle proof down to the prior block in the block merkle tree (this proof path changes deterministically with every new block, therefore it is important for the miner's mempool to be able to augment this path)
+  - merkle proof of opening transaction included in the block where this seal was open
+  - merkle proof of this seal inside the transaction
 
 Signed part:
 
@@ -161,4 +163,4 @@ We demonstrate that the original Prime design can be extended with a different b
 
 ## Acknowledgements
 
-We would like to extend our gratitude to Dr. Maxim Orlovsky, the author of [the Prime paper](https://github.com/LNP-BP/layer1), which sparked an idea to start researching blockchain-less and purely client-side-validated designs. 
+We would like to extend our gratitude to Dr. Maxim Orlovsky, the author of [the Prime paper](https://github.com/LNP-BP/layer1), which sparked an idea to start researching blockchain-less and purely client-side-validated designs.
