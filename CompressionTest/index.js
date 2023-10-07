@@ -1,92 +1,22 @@
 const zlib = require("zlib");
 const {deltaCompression} = require("./deltaCompression");
 const {numToBuffer} = require("./varInt");
+const {generateSealTuples} = require("./sealData");
 //const zstd = require('@skhaz/zstd');
-
-//Number of transactions spending inputs that are of certain age
-const arr = [
-    696842,
-    1128683,
-    522179,
-    259620,
-    129380,
-    51816,
-    51666,
-    70745
-];
-
-//Input age buckets (denoted in # of blocks)
-const blocks = [
-    6,
-    144,
-    144*7,
-    144*30,
-    144*90,
-    144*180,
-    144*360
-];
-
-//Total transaction count in array
-const total = 2910931;
-
-//Create an array of percentage for transaction ages
-const pctArr = arr.map(e => e/total);
-
-console.log(pctArr);
 
 //Data about the txs per block and seals opened in a single block
 const txsPerBlock = 1024*1024;
-const openedSealsPerBlock = 3*txsPerBlock;
-const blockMultiplier = (16*1024*1024); //Must be strictly larger than openedSealsPerBlock
-
+const avgOutsPerTx = 3;
 const currBlock = 5476272;
 
-//Create spend seals that have the very same spending habit as utxos on bitcoin
-let upperLimit = currBlock;
-const sealArr = [];
-for(let i=0;i<pctArr.length;i++) {
-    const numTxs = Math.floor(pctArr[i]*txsPerBlock);
-    let lowerLimit = blocks[i]==null ? 0 : upperLimit-blocks[i];
-
-    const sealSet = new Set();
-    for(let e=0;e<numTxs;e++) {
-        const dBlock = Math.floor((upperLimit-lowerLimit)*Math.random());
-        const block = upperLimit-dBlock;
-        const sealNum = Math.floor(Math.random()*openedSealsPerBlock);
-        let sealId = (block*blockMultiplier) + sealNum;
-        if(sealSet.has(sealId)) {
-            while(sealSet.has(sealId)) {
-                const sealNum = Math.floor(Math.random()*openedSealsPerBlock);
-                sealId = (block*blockMultiplier) + sealNum;
-            }
-        }
-        sealSet.add(sealId);
-    }
-
-    sealSet.forEach(e => sealArr.push(e));
-
-    upperLimit = lowerLimit;
-}
-
-sealArr.sort((a,b) => a-b);
-
-
-//Map seals to tuples: {block, sealNum}
-const sealObjArr = sealArr.map(e => {
-    const block = Math.floor(e/blockMultiplier);
-    const sealNum = e-(block*blockMultiplier);
-    return {
-        block,
-        sealNum
-    };
-});
+const sealObjArr = generateSealTuples(txsPerBlock, avgOutsPerTx, currBlock);
 
 const blockSealArr = {};
 
 //Create a dict mapping {[block_num]: Array<sealNum>}
 sealObjArr.forEach(e => {
-    if(blockSealArr[e.block]==null) blockSealArr[e.block] = [];
-    blockSealArr[e.block].push(e.sealNum);
+    if(blockSealArr[e[0]]==null) blockSealArr[e[0]] = [];
+    blockSealArr[e[0]].push(e[1]);
 });
 
 //Extract keys (block heights) from dict
