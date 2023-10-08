@@ -23,8 +23,27 @@ sealObjArr.forEach(e => {
 const blockNums = Object.keys(blockSealArr).map(e => parseInt(e));
 console.log("Block list size: ", blockNums.length);
 
+const daysSet = new Set();
+for(let blockNum of blockNums) {
+    daysSet.add(Math.floor(blockNum/16));
+}
+
+console.log("Days used: ", daysSet.size);
+
 //Compress block heights with delta compression
 const blockNumDeltaCompressed = deltaCompression(blockNums);
+
+console.log("Blocks delta compressed size: ", blockNumDeltaCompressed.length);
+
+// const blockNumGzipped = zlib.gzipSync(blockNumDeltaCompressed, {
+//     chunkSize: 16*1024,
+//     windowBits: 15,
+//     level: 9,
+//     memLevel: 9,
+//     strategy: 3
+// });
+//
+// console.log("Blocks zlib compressed size: ", blockNumGzipped.length);
 
 const dataLengthBuffers = [];
 const blockEntriesBuffers = [];
