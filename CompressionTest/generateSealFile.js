@@ -12,8 +12,8 @@ const buffers = [];
 
 for(let tuple of tuplesArr) {
     const buffer = Buffer.alloc(6);
-    buffer.writeUIntBE(tuple[0], 0, 3);
-    buffer.writeUIntBE(tuple[1], 3, 3);
+    buffer.writeUIntLE(tuple[0], 0, 3);
+    buffer.writeUIntLE(tuple[1], 3, 3);
     buffers.push(buffer);
 }
 
