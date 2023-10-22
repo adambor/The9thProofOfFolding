@@ -19,6 +19,19 @@ The main idea is to solve the interactivity, bandwidth, and data availability re
 
 \* The light client of 9th Proof can either rely on PoW (like SPV as defined in bitcoin whitepaper), or can use STARK proofs that prove the validity of the chain without having to sync the block content.
 
+## Comparison between Bitcoin, 9th Proof & Prime
+
+|                  | Bitcoin              | 9th Proof                       | Prime                                                                              |
+|------------------|----------------------|---------------------------------|------------------------------------------------------------------------------------|
+| Block size       | 200N                 | 100000 + 2N + 8000*(log(40N))^2 | 200                                                                                |
+| Chain state      | 200N/8               | N/8                             | -                                                                                  |
+| Client side data | -                    | log(N)                          | t*log(N)                                                                           |
+| Yearly growth    |                      |                                 |                                                                                    |
+| - 500m txns/year | 100GB                | 20GB                            | 10MB + 25MB = 35MB                                                                 |
+| - 50bn txns/year | 10TB                 | 130GB                           | 10MB + 33MB = 43MB                                                                 |
+| Trade-offs       | Privacy, Scalability | How to pay fees                 | Interactivity, Complex multisig, No routed HTLCs/PTLCs, Bandwidth, How to pay fees |
+| Advantages       | No hidden inflation  | Secure light client             |                                                                                    |
+
 ## Single-use-seals
 
 Prime (and in turn also our proposal), uses a concept of single-use-seals instead of UTXOs. Single-use-seal is a cryptographic primitive that can be closed/spent in the future but only once and only over one message/commitment - they are utilized for double-spend protection. Unlike UTXOs in bitcoin which contains some inherent value denominated in bitcoin (and only in bitcoin), the value of the single-use-seal is purely defined by the client-side-validated state assigned to it (this can be token amount, UDA/NFT, identity, or any other rich state for arbitrary complex smart contracts). There also can be multiple states assigned to single single-use-seal, so you can hold numerous token balances, UDAs/NFTs, and other smart contract states on only one single-use-seal. To advance the state (transfer tokens, transfer UDAs/NFTs, revoke identity) you need to spend/close a single-use-seal where this state is assigned to, and in the transaction spending/closing it, commit to a state transition (e.g. transfer of 10 tokens to B - I have 100 tokens, I assign 10 tokens to a single-use-seal controlled by B, and assign the rest 90 tokens to a single-use-seal controlled by me).
